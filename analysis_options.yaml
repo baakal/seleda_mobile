@@ -1,0 +1,24 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    public_member_api_docs: false
+    prefer_const_constructors: true
+    prefer_final_locals: true
+    avoid_dynamic_calls: true
+    always_use_package_imports: true
+    prefer_const_literals_to_create_immutables: true
+    sort_child_properties_last: true
+    use_super_parameters: true
+    unnecessary_lambdas: true
+
+analyzer:
+  strong-mode:
+    implicit-casts: false
+    implicit-dynamic: false
+  language:
+    strict-inference: true
+    strict-raw-types: true
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'

@@ -1,0 +1,22 @@
+# Flutter/Dart/Pub related
+**/doc/api/
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.melior_cache/
+.idea/
+android/.gradle/
+android/app/build/
+ios/Pods/
+*.iml
+*.log
+*.pyc
+.DS_Store
+.macos/
+coverage/
+assets/
+!.gitkeep
