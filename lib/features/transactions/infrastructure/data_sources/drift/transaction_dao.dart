@@ -18,24 +18,25 @@ class TransactionWithAttachments {
 class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDaoMixin {
   TransactionDao(AppDatabase db) : super(db);
 
-  Future<void> insertTransaction(TransactionsCompanion data, List<AttachmentsCompanion> attachments) async {
+  Future<void> insertTransaction(TransactionsCompanion data, List<AttachmentsCompanion> attachmentCompanions) async {
     await transaction(() async {
       await into(transactions).insertOnConflictUpdate(data);
-      if (attachments.isNotEmpty) {
+      if (attachmentCompanions.isNotEmpty) {
         await batch((batch) {
-          batch.insertAllOnConflictUpdate(this.attachments, attachments);
+          batch.insertAllOnConflictUpdate(attachments, attachmentCompanions);
         });
       }
     });
   }
 
-  Future<void> updateTransaction(TransactionsCompanion data, List<AttachmentsCompanion> attachments) async {
+  Future<void> updateTransaction(TransactionsCompanion data, List<AttachmentsCompanion> attachmentCompanions) async {
     await transaction(() async {
       await into(transactions).insertOnConflictUpdate(data);
-      await (delete(attachmentsTable)..where((tbl) => tbl.transactionId.equals(data.id.value))).go();
-      if (attachments.isNotEmpty) {
+      // Remove existing attachments for this transaction before re-inserting
+      await (delete(attachments)..where((tbl) => tbl.transactionId.equals(data.id.value))).go();
+      if (attachmentCompanions.isNotEmpty) {
         await batch((batch) {
-          batch.insertAllOnConflictUpdate(this.attachments, attachments);
+          batch.insertAllOnConflictUpdate(attachments, attachmentCompanions);
         });
       }
     });
@@ -43,7 +44,7 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
 
   Future<void> deleteTransactionById(String id) async {
     await transaction(() async {
-      await (delete(attachmentsTable)..where((tbl) => tbl.transactionId.equals(id))).go();
+  await (delete(attachments)..where((tbl) => tbl.transactionId.equals(id))).go();
       await (delete(transactions)..where((tbl) => tbl.id.equals(id))).go();
     });
   }
@@ -103,5 +104,4 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
     return TransactionWithAttachments(transaction: transactionData, attachments: attachmentsData);
   }
 
-  Attachments get attachmentsTable => attachments;
 }

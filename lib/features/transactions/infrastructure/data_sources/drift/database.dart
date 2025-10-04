@@ -11,6 +11,7 @@ import 'package:seleda_finance/features/transactions/infrastructure/data_sources
 
 part 'database.g.dart';
 
+@DataClassName('TransactionData')
 class Transactions extends Table {
   TextColumn get id => text()();
   IntColumn get dateEpochMs => integer()();
@@ -23,6 +24,7 @@ class Transactions extends Table {
   Set<Column<Object>>? get primaryKey => {id};
 }
 
+@DataClassName('AttachmentData')
 class Attachments extends Table {
   TextColumn get id => text()();
   TextColumn get transactionId => text()();

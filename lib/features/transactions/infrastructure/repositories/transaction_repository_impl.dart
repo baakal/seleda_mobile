@@ -16,7 +16,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
 
   @override
   Future<void> add(domain.Transaction transaction) async {
-    await _dao.insertTransaction(
+  await _dao.insertTransaction(
       TransactionsCompanion(
         id: Value(transaction.id),
         dateEpochMs: Value(transaction.dateEpochMs),
@@ -67,7 +67,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
 
   @override
   Future<void> update(domain.Transaction transaction) async {
-    await _dao.updateTransaction(
+  await _dao.updateTransaction(
       TransactionsCompanion(
         id: Value(transaction.id),
         dateEpochMs: Value(transaction.dateEpochMs),
