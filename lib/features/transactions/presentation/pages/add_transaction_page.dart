@@ -24,6 +24,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   late final TextEditingController _amountController;
   late final TextEditingController _categoryController;
   late final TextEditingController _noteController;
+  // No explicit listener flag needed; we attach using ref.listen inside build.
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     _categoryController = TextEditingController();
     _noteController = TextEditingController();
 
+    // Defer loading defaults until first frame to ensure context is ready.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final notifier = ref.read(addTransactionControllerProvider.notifier);
       notifier.loadDefaults(widget.defaultType);
@@ -39,28 +41,40 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         notifier.applyVoice(widget.voicePrefill!);
       }
     });
+  }
 
-    ref.listen<AddEditTransactionState>(addTransactionControllerProvider, (previous, next) {
-      if (previous?.amount.cents != next.amount.cents) {
-        _amountController.text = (next.amount.cents / 100).toStringAsFixed(2);
+  void _onStateChanged(AddEditTransactionState? previous, AddEditTransactionState next) {
+    // Update controllers only when values actually changed to avoid loops.
+    if (previous == null || previous.amount.cents != next.amount.cents) {
+      final formatted = (next.amount.cents / 100).toStringAsFixed(2);
+      if (_amountController.text != formatted) {
+        _amountController.text = formatted;
       }
-      if (previous?.category != next.category) {
+    }
+    if (previous == null || previous.category != next.category) {
+      if (_categoryController.text != next.category) {
         _categoryController.text = next.category;
       }
-      if (previous?.note != next.note) {
+    }
+    if (previous == null || previous.note != next.note) {
+      if (_noteController.text != next.note) {
         _noteController.text = next.note;
       }
-      if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+    }
+    if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.errorMessage!)),
         );
       }
-      if (next.successMessage != null && next.successMessage != previous?.successMessage) {
+    }
+    if (next.successMessage != null && next.successMessage != previous?.successMessage) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.successMessage!)),
         );
       }
-    });
+    }
   }
 
   @override
@@ -73,6 +87,12 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Attach listener during build (allowed) – Riverpod disposes and re-adds as needed.
+    ref.listen<AddEditTransactionState>(
+      addTransactionControllerProvider,
+      _onStateChanged,
+    );
+
     final state = ref.watch(addTransactionControllerProvider);
     final notifier = ref.read(addTransactionControllerProvider.notifier);
     final dateLabel = DateFormat.yMMMd().format(state.date);

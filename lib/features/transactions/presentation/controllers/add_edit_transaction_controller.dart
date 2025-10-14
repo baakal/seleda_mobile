@@ -110,7 +110,8 @@ class AddEditTransactionController extends StateNotifier<AddEditTransactionState
   void setAmount(String value) {
     final normalized = value.replaceAll(',', '').trim();
     final parsed = double.tryParse(normalized);
-    if (parsed == null) {
+    if (parsed == null || parsed <= 0) {
+      // Only allow positive numbers; reset to zero otherwise
       state = state.copyWith(amount: Money.zero());
       return;
     }

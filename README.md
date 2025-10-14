@@ -68,3 +68,41 @@ Common tasks:
 - If Drift code generation fails, ensure no editor is locking files and rerun build_runner.
 - For voice-to-text to work on simulators, ensure microphone access is enabled.
 
+## UI Redesign (Prototype Integration)
+
+The folder `seleda-flutter-restructure/` contained an earlier UI prototype (GetX-based) with:
+- Splash screen
+- Bottom navigation (Home, Category, Search, Excel, Settings)
+- Reports / Charts page
+- Settings & Account pages with dark mode toggle
+
+This repository now integrates modern equivalents using Riverpod + GoRouter:
+
+Implemented additions:
+1. ShellRoute + `NavigationBar` bottom navigation (Home, Transactions, Reports, Settings)
+2. `ReportPage` with basic time–range filtering (week/month/year) and line chart (Syncfusion)
+3. `SettingsPage` with dark mode toggle (Riverpod `themeModeProvider`) and account stub
+4. `AccountPage` stub with language chip placeholders
+5. `SplashPage` (initial route) that transitions to dashboard
+6. Theme mode state via `ThemeModeNotifier`
+
+New dependencies (run `flutter pub get`):
+- syncfusion_flutter_charts
+- flutter_spinkit
+- dropdown_button2 (reserved for future enhanced dropdown UX)
+
+Planned / Deferred:
+- Search integration (transaction search + suggestion UI)
+- Localization (Amharic, Tigrigna, Oromiffa) using ARB / intl
+- Export to Excel (prototype icon placeholder only)
+- Advanced report visuals (stacked bars, category breakdown, pie chart)
+- Authentication & real user profile
+
+### Next Steps Suggested
+- Add repository layer aggregations for performance (pre-compute weekly/monthly sums)
+- Introduce a `SearchController` with debounced query stream
+- Add `intl` localization setup and move hard-coded strings into messages
+- Write widget tests for new pages (report filtering, theme toggle persistence)
+- Persist theme preference locally (e.g., `SharedPreferences` / `Hive`)
+
+
