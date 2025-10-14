@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:seleda_finance/features/transactions/presentation/style.dart';
 
 class AccountPage extends StatelessWidget {
   const AccountPage({super.key});
@@ -8,20 +9,20 @@ class AccountPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Account')),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: TxStyles.screenPaddingAll,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(radius: 40, child: Text('J', style: Theme.of(context).textTheme.headlineSmall)),
-            const SizedBox(height: 24),
+            const SizedBox(height: TxStyles.spaceXl),
             Text('Username', style: Theme.of(context).textTheme.labelMedium),
-            const SizedBox(height: 4),
+            const SizedBox(height: TxStyles.spaceXs),
             const Text('john'),
-            const SizedBox(height: 24),
+            const SizedBox(height: TxStyles.spaceXl),
             Text('Language', style: Theme.of(context).textTheme.labelMedium),
-            const SizedBox(height: 8),
+            const SizedBox(height: TxStyles.spaceSm),
             Wrap(
-              spacing: 8,
+              spacing: TxStyles.spaceSm,
               children: const [
                 Chip(label: Text('English')),
                 Chip(label: Text('Amharic')),

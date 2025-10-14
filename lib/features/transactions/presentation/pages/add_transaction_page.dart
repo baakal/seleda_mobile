@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:seleda_finance/features/transactions/domain/value_objects/transaction_type.dart';
 import 'package:seleda_finance/features/transactions/presentation/controllers/add_edit_transaction_controller.dart';
+import 'package:seleda_finance/features/transactions/presentation/style.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   const AddTransactionPage({
@@ -20,7 +21,62 @@ class AddTransactionPage extends ConsumerStatefulWidget {
   ConsumerState<AddTransactionPage> createState() => _AddTransactionPageState();
 }
 
+// Top-level keypad button widget
+class _KeypadButton extends StatelessWidget {
+  final String label;
+  final void Function(String) onTap;
+  final IconData? icon;
+  const _KeypadButton({Key? key, required this.label, required this.onTap, this.icon}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: SizedBox(
+        width: 60,
+        height: 48,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          onPressed: () => onTap(label),
+          child: icon != null ? Icon(icon) : Text(label, style: const TextStyle(fontSize: 22)),
+        ),
+      ),
+    );
+  }
+}
+
 class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
+  void _onKeypadTap(String value) {
+    final current = _amountController.text;
+    if (value == 'C') {
+      _amountController.clear();
+      ref.read(addTransactionControllerProvider.notifier).setAmount('');
+      return;
+    }
+    if (value == '<') {
+      if (current.isNotEmpty) {
+        final newText = current.substring(0, current.length - 1);
+        _amountController.text = newText;
+        ref.read(addTransactionControllerProvider.notifier).setAmount(newText);
+      }
+      return;
+    }
+    // Only allow one decimal point
+    if (value == '.' && current.contains('.')) return;
+    // Limit to 2 decimal places
+    if (current.contains('.') && value != '.' && current.split('.').last.length >= 2) return;
+    final newText = current + value;
+    // Remove leading zeros unless immediately followed by a decimal point
+    String displayText = newText;
+    if (displayText.startsWith('0') && displayText.length > 1 && displayText[1] != '.') {
+      displayText = displayText.replaceFirst(RegExp(r'^0+'), '');
+    }
+    _amountController.text = displayText;
+    ref.read(addTransactionControllerProvider.notifier).setAmount(displayText);
+  }
   late final TextEditingController _amountController;
   late final TextEditingController _categoryController;
   late final TextEditingController _noteController;
@@ -46,7 +102,17 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   void _onStateChanged(AddEditTransactionState? previous, AddEditTransactionState next) {
     // Update controllers only when values actually changed to avoid loops.
     if (previous == null || previous.amount.cents != next.amount.cents) {
-      final formatted = (next.amount.cents / 100).toStringAsFixed(2);
+      // Convert cents to double string with up to 6 decimals, then trim
+      String formatted = (next.amount.cents / 100).toStringAsFixed(6);
+      // Trim trailing zeros
+      if (formatted.contains('.')) {
+        while (formatted.endsWith('0')) {
+          formatted = formatted.substring(0, formatted.length - 1);
+        }
+        if (formatted.endsWith('.')) {
+          formatted = formatted.substring(0, formatted.length - 1);
+        }
+      }
       if (_amountController.text != formatted) {
         _amountController.text = formatted;
       }
@@ -100,113 +166,235 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Transaction'),
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SegmentedButton<TransactionType>(
-              segments: const [
-                ButtonSegment(value: TransactionType.income, label: Text('Income')),
-                ButtonSegment(value: TransactionType.expense, label: Text('Expense')),
-              ],
-              selected: {state.type},
-              onSelectionChanged: (selection) {
-                notifier.setType(selection.first);
-              },
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Amount'),
-              onChanged: notifier.setAmount,
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Date'),
-              subtitle: Text(dateLabel),
-              trailing: IconButton(
-                icon: const Icon(Icons.calendar_today),
-                onPressed: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: state.date,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) {
-                    notifier.setDate(picked);
-                  }
+            // Top: Expense/Income switch
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: TxStyles.spaceLg),
+              child: SegmentedButton<TransactionType>(
+                segments: const [
+                  ButtonSegment(value: TransactionType.income, label: Text('Income')),
+                  ButtonSegment(value: TransactionType.expense, label: Text('Expense')),
+                ],
+                selected: {state.type},
+                onSelectionChanged: (selection) {
+                  notifier.setType(selection.first);
                 },
               ),
             ),
-            TextField(
-              controller: _categoryController,
-              decoration: const InputDecoration(labelText: 'Category'),
-              onChanged: notifier.setCategory,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _noteController,
-              decoration: const InputDecoration(labelText: 'Note'),
-              onChanged: notifier.setNote,
-              minLines: 2,
-              maxLines: 4,
-            ),
-            const SizedBox(height: 16),
-            Text('Attachments', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () => notifier.addAttachment(ImageSource.camera),
-                  icon: const Icon(Icons.photo_camera),
-                  label: const Text('Camera'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => notifier.addAttachment(ImageSource.gallery),
-                  icon: const Icon(Icons.photo_library),
-                  label: const Text('Gallery'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (state.attachments.isEmpty)
-              const Text('No attachments added.')
-            else
-              Wrap(
-                spacing: 8,
-                children: state.attachments
-                    .map(
-                      (attachment) => Chip(
-                        label: Text(attachment.filePath.split('/').last),
-                        onDeleted: () => notifier.removeAttachment(attachment),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Centered, large amount
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: TxStyles.spaceXl),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: 220,
+                              child: AbsorbPointer(
+                                child: TextField(
+                                  controller: _amountController,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  textAlign: TextAlign.center,
+                                  style: TxStyles.largeAmount(context),
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    labelText: null,
+                                    hintText: '0',
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                  // Disable direct editing
+                                  readOnly: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: TxStyles.spaceMd),
+                            // Keypad
+                            SizedBox(
+                              width: 260,
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      _KeypadButton(label: '1', onTap: _onKeypadTap),
+                                      _KeypadButton(label: '2', onTap: _onKeypadTap),
+                                      _KeypadButton(label: '3', onTap: _onKeypadTap),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      _KeypadButton(label: '4', onTap: _onKeypadTap),
+                                      _KeypadButton(label: '5', onTap: _onKeypadTap),
+                                      _KeypadButton(label: '6', onTap: _onKeypadTap),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      _KeypadButton(label: '7', onTap: _onKeypadTap),
+                                      _KeypadButton(label: '8', onTap: _onKeypadTap),
+                                      _KeypadButton(label: '9', onTap: _onKeypadTap),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      _KeypadButton(label: '.', onTap: _onKeypadTap),
+                                      _KeypadButton(label: '0', onTap: _onKeypadTap),
+                                      _KeypadButton(label: '<', onTap: _onKeypadTap, icon: Icons.backspace),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _KeypadButton(label: 'C', onTap: _onKeypadTap, icon: Icons.clear),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    )
-                    .toList(),
-              ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: state.isSaving
-                    ? null
-                    : () async {
-                        final result = await notifier.submit();
-                        result.fold(
-                          (_) {},
-                          (error) => ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(error.message)),
+                    ),
+
+// ...existing code...
+                    // Notes
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: TxStyles.spaceXl, vertical: TxStyles.spaceSm),
+                      child: TextField(
+                        controller: _noteController,
+                        decoration: const InputDecoration(
+                          labelText: 'Note',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: notifier.setNote,
+                        minLines: 2,
+                        maxLines: 4,
+                      ),
+                    ),
+                    // Category
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: TxStyles.spaceXl, vertical: TxStyles.spaceSm),
+                      child: TextField(
+                        controller: _categoryController,
+                        decoration: const InputDecoration(
+                          labelText: 'Category',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: notifier.setCategory,
+                      ),
+                    ),
+                    // Attachments and Date row
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: TxStyles.spaceXl, vertical: TxStyles.spaceSm),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Capture receipt/attachment button
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              // Show options for camera/gallery
+                              showModalBottomSheet<void>(
+                                context: context,
+                                builder: (ctx) => Wrap(
+                                  children: [
+                                    ListTile(
+                                      leading: const Icon(Icons.photo_camera),
+                                      title: const Text('Capture Receipt'),
+                                      onTap: () {
+                                        Navigator.pop(ctx);
+                                        notifier.addAttachment(ImageSource.camera);
+                                      },
+                                    ),
+                                    ListTile(
+                                      leading: const Icon(Icons.photo_library),
+                                      title: const Text('Pick from Gallery'),
+                                      onTap: () {
+                                        Navigator.pop(ctx);
+                                        notifier.addAttachment(ImageSource.gallery);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.attach_file),
+                            label: const Text('Capture receipt or attachment'),
                           ),
-                        );
-                      },
-                child: state.isSaving
-                    ? const CircularProgressIndicator()
-                    : const Text('Save Transaction'),
+                          // Date change button
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: state.date,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                              );
+                              if (picked != null) {
+                                notifier.setDate(picked);
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_today),
+                            label: Text(dateLabel),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Show attachments chips if any
+                    if (state.attachments.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: TxStyles.spaceXl, vertical: TxStyles.spaceSm),
+                        child: Wrap(
+                          spacing: TxStyles.spaceSm,
+                          children: state.attachments
+                              .map(
+                                (attachment) => Chip(
+                                  label: Text(attachment.filePath.split('/').last),
+                                  onDeleted: () => notifier.removeAttachment(attachment),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            // Save button at the bottom
+            Padding(
+              padding: const EdgeInsets.all(TxStyles.spaceXl),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: state.isSaving
+                      ? null
+                      : () async {
+                          final result = await notifier.submit();
+                          result.fold(
+                            (_) {},
+                            (error) => ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(error.message)),
+                            ),
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  child: state.isSaving
+                      ? const CircularProgressIndicator()
+                      : const Text('Save'),
+                ),
               ),
             ),
           ],

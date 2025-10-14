@@ -4,6 +4,7 @@ import 'package:seleda_finance/shared/formatters/money_formatter.dart';
 import 'package:seleda_finance/features/transactions/domain/value_objects/transaction_type.dart';
 import 'package:seleda_finance/features/transactions/domain/value_objects/money.dart';
 import 'package:seleda_finance/features/transactions/presentation/controllers/balance_controller.dart';
+import 'package:seleda_finance/features/transactions/presentation/controllers/transaction_list_controller.dart';
 
 /// Stylized balance summary matching provided design reference while preserving
 /// existing app color scheme. Shows total balance and expandable income/expense.
@@ -40,95 +41,113 @@ class _BalanceSummaryCardState extends ConsumerState<BalanceSummaryCard> with Si
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final balanceAsync = ref.watch(balanceProvider);
+    final transactionState = ref.watch(transactionListControllerProvider);
 
-    return balanceAsync.when(
-      loading: () => const SizedBox(height: 160, child: Center(child: CircularProgressIndicator())),
-      error: (err, _) => Container(
+    // Show loading if either is loading
+    if (balanceAsync.isLoading || transactionState.status.isLoading) {
+      return const SizedBox(height: 160, child: Center(child: CircularProgressIndicator()));
+    }
+    if (balanceAsync.hasError) {
+      return Container(
         padding: const EdgeInsets.all(20),
         decoration: _decoration(scheme),
-        child: Text('Error: $err', style: TextStyle(color: scheme.onPrimary)),
-      ),
-      data: (money) {
-        final amountStyle = Theme.of(context).textTheme.displaySmall?.copyWith(
-              color: scheme.onPrimary,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -1,
-            );
-        // For now we don't have segregated income/expense totals exposed in balance state.
-        // Placeholder logic: positive money => income, negative => expense magnitudes.
-  // Placeholder separation: if overall balance negative, treat absolute as expense; if positive, treat as income.
-  final income = money.cents >= 0 ? money : Money.zero();
-  final expense = money.cents < 0 ? money.abs() : Money.zero();
+        child: Text('Error: ${balanceAsync.error}', style: TextStyle(color: scheme.onPrimary)),
+      );
+    }
+    if (transactionState.status.hasError) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: _decoration(scheme),
+        child: Text('Error: ${transactionState.status.error}', style: TextStyle(color: scheme.onPrimary)),
+      );
+    }
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-          decoration: _decoration(scheme),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final balance = balanceAsync.value!;
+    final transactions = transactionState.status.value ?? <dynamic>[];
+    // Sum all income and expense transactions
+    Money totalIncome = Money.zero();
+    Money totalExpense = Money.zero();
+    for (final tx in transactions) {
+      if (tx.type == TransactionType.income) {
+        totalIncome += tx.amount;
+      } else if (tx.type == TransactionType.expense) {
+        totalExpense += tx.amount;
+      }
+    }
+
+    final amountStyle = Theme.of(context).textTheme.displaySmall?.copyWith(
+      color: scheme.onPrimary,
+      fontWeight: FontWeight.w600,
+      letterSpacing: -1,
+    );
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      decoration: _decoration(scheme),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: _toggle,
-                    child: Row(
-                      children: [
-                        Text('Total Balance', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: scheme.onPrimary)),
-                        const SizedBox(width: 4),
-                        AnimatedRotation(
-                          turns: _expanded ? 0 : .5,
-                          duration: const Duration(milliseconds: 250),
-                          child: Icon(Icons.keyboard_arrow_up, color: scheme.onPrimary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(Icons.more_horiz, color: scheme.onPrimary),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                formatMoney(money, type: money.cents >= 0 ? TransactionType.income : TransactionType.expense),
-                style: amountStyle,
-              ),
-              SizeTransition(
-                sizeFactor: _expand,
-                axisAlignment: -1,
-                child: Column(
+              GestureDetector(
+                onTap: _toggle,
+                child: Row(
                   children: [
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        _miniMetric(
-                          context,
-                          label: 'Income',
-                          icon: Icons.arrow_downward,
-                          value: formatMoney(income, type: TransactionType.income),
-                          scheme: scheme,
-                        ),
-                        const SizedBox(width: 32),
-                        _miniMetric(
-                          context,
-                          label: 'Expenses',
-                          icon: Icons.arrow_upward,
-                          value: formatMoney(expense, type: TransactionType.expense),
-                          scheme: scheme,
-                        ),
-                      ],
+                    Text('Total Balance', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: scheme.onPrimary)),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _expanded ? 0 : .5,
+                      duration: const Duration(milliseconds: 250),
+                      child: Icon(Icons.keyboard_arrow_up, color: scheme.onPrimary),
                     ),
                   ],
                 ),
               ),
+              const Spacer(),
+              IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.more_horiz, color: scheme.onPrimary),
+                onPressed: () {},
+              ),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 4),
+          Text(
+            formatMoney(balance, type: balance.cents >= 0 ? TransactionType.income : TransactionType.expense),
+            style: amountStyle,
+          ),
+          SizeTransition(
+            sizeFactor: _expand,
+            axisAlignment: -1,
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    _miniMetric(
+                      context,
+                      label: 'Income',
+                      icon: Icons.arrow_downward,
+                      value: formatMoney(totalIncome, type: TransactionType.income),
+                      scheme: scheme,
+                    ),
+                    const SizedBox(width: 32),
+                    _miniMetric(
+                      context,
+                      label: 'Expenses',
+                      icon: Icons.arrow_upward,
+                      value: formatMoney(totalExpense, type: TransactionType.expense),
+                      scheme: scheme,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

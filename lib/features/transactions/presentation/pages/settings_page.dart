@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seleda_finance/app/theme_mode_provider.dart';
+import 'package:seleda_finance/features/transactions/presentation/style.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -13,6 +14,7 @@ class SettingsPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
+        padding: TxStyles.screenPadding,
         children: [
           SwitchListTile(
             title: const Text('Dark Mode'),

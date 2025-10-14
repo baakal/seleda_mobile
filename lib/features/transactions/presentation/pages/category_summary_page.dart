@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seleda_finance/features/transactions/presentation/controllers/transaction_list_controller.dart';
 import 'package:seleda_finance/features/transactions/domain/value_objects/transaction_type.dart';
+import 'package:seleda_finance/features/transactions/presentation/style.dart';
 
 class CategorySummaryPage extends ConsumerWidget {
   const CategorySummaryPage({super.key});
@@ -26,25 +27,29 @@ class CategorySummaryPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Categories')),
-      body: state.status.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (_) => rows.isEmpty
-            ? const Center(child: Text('No transactions'))
-            : ListView.separated(
-                itemCount: rows.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final e = rows[index];
-                  final net = e.value.net;
-                  final color = net >= 0 ? Colors.green : Colors.red;
-                  return ListTile(
-                    title: Text(e.key),
-                    subtitle: Text('Income: ${e.value.income.toStringAsFixed(2)}  Expense: ${e.value.expense.toStringAsFixed(2)}'),
-                    trailing: Text(net.toStringAsFixed(2), style: TextStyle(color: color, fontWeight: FontWeight.bold)),
-                  );
-                },
-              ),
+      body: Padding(
+        padding: TxStyles.screenPadding,
+        child: state.status.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+          data: (_) => rows.isEmpty
+              ? const Center(child: Text('No transactions'))
+              : ListView.separated(
+                  itemCount: rows.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final e = rows[index];
+                    final net = e.value.net;
+                    final color = net >= 0 ? Colors.green : Colors.red;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(e.key, style: TxStyles.sectionTitle(context)),
+                      subtitle: Text('Income: ${e.value.income.toStringAsFixed(2)}  Expense: ${e.value.expense.toStringAsFixed(2)}'),
+                      trailing: Text(net.toStringAsFixed(2), style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+                    );
+                  },
+                ),
+        ),
       ),
     );
   }

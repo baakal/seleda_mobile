@@ -7,6 +7,7 @@ import 'package:seleda_finance/features/transactions/presentation/widgets/transa
 import 'package:seleda_finance/app/widgets/app_header.dart';
 import 'package:seleda_finance/app/widgets/expandable_fab.dart';
 import 'package:seleda_finance/features/transactions/presentation/widgets/balance_summary_card.dart';
+import 'package:seleda_finance/features/transactions/presentation/style.dart';
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
@@ -24,12 +25,17 @@ class DashboardPage extends ConsumerWidget {
           ref.invalidate(transactionListControllerProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16,16,16,kExpandableFabBottomPadding),
+          padding: const EdgeInsets.fromLTRB(
+            TxStyles.spaceLg,
+            TxStyles.spaceLg,
+            TxStyles.spaceLg,
+            kExpandableFabBottomPadding,
+          ),
           children: [
             const BalanceSummaryCard(),
-            const SizedBox(height: 16),
-            Text('Recent Transactions', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            const SizedBox(height: TxStyles.spaceLg),
+            Text('Recent Transactions', style: TxStyles.sectionTitle(context)),
+            const SizedBox(height: TxStyles.spaceSm),
             if (transactionState.status.isLoading)
               const Center(child: CircularProgressIndicator())
             else if (transactions.isEmpty)

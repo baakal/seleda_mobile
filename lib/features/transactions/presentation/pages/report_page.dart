@@ -7,6 +7,7 @@ import 'package:seleda_finance/app/di.dart';
 import 'package:seleda_finance/features/transactions/domain/entities/transaction.dart';
 import 'package:seleda_finance/features/transactions/domain/value_objects/transaction_type.dart';
 import 'package:seleda_finance/app/widgets/app_header.dart';
+import 'package:seleda_finance/features/transactions/presentation/style.dart';
 
 enum ReportRange { week, month, year }
 
@@ -90,15 +91,15 @@ class ReportPage extends ConsumerWidget {
     return Scaffold(
       appBar: const AppHeader(showSearch: false),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: TxStyles.screenPaddingAll,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Text('Net Balance:'),
-                const SizedBox(width: 8),
-                Text(report.netBalance.toStringAsFixed(2), style: Theme.of(context).textTheme.headlineSmall),
+                Text('Net Balance', style: TxStyles.sectionTitle(context)),
+                const SizedBox(width: TxStyles.spaceSm),
+                Text(report.netBalance.toStringAsFixed(2), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                 const Spacer(),
                 DropdownButton<ReportRange>(
                   value: report.range,
@@ -111,7 +112,7 @@ class ReportPage extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: TxStyles.spaceXl),
             Expanded(
               child: points.isEmpty
                   ? const Center(child: Text('No data for selected range'))

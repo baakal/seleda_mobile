@@ -5,6 +5,7 @@ import 'package:seleda_finance/app/di.dart';
 import 'package:seleda_finance/features/transactions/domain/value_objects/transaction_type.dart';
 import 'package:seleda_finance/features/transactions/presentation/controllers/transaction_list_controller.dart';
 import 'package:seleda_finance/features/transactions/presentation/widgets/transaction_list_item.dart';
+import 'package:seleda_finance/features/transactions/presentation/style.dart';
 
 class TransactionsPage extends ConsumerWidget {
   const TransactionsPage({super.key});
@@ -21,9 +22,14 @@ class TransactionsPage extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(
+              TxStyles.spaceLg,
+              TxStyles.spaceSm,
+              TxStyles.spaceLg,
+              TxStyles.spaceSm,
+            ),
             child: Wrap(
-              spacing: 8,
+              spacing: TxStyles.spaceSm,
               children: [
                 ChoiceChip(
                   label: const Text('All'),

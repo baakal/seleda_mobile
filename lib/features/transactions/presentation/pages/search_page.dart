@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seleda_finance/features/transactions/presentation/controllers/transaction_list_controller.dart';
+import 'package:seleda_finance/features/transactions/presentation/style.dart';
 
 final searchQueryProvider = StateProvider<String>((_) => '');
 
@@ -25,7 +26,7 @@ class SearchPage extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: TxStyles.screenPadding.copyWith(top: TxStyles.spaceLg, bottom: TxStyles.spaceSm),
             child: TextField(
               decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search category or note'),
               onChanged: (v) => ref.read(searchQueryProvider.notifier).state = v,
